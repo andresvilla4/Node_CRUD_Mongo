@@ -23,4 +23,35 @@ app.post('/usuario', (req, res) => {
         });
     });
 });
+
+// Listar usuarios
+app.get('/usuario', function(req, res) {
+    let desde = req.query.desde || 0;
+    desde = Number(desde);
+
+    let limite = req.query.limite || 5;
+    limite = Number(limite);
+
+    SchemeUser.find()
+        .skip(desde)
+        .limit(limite)
+        .exec((err, users) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    err
+                });
+            }
+
+            // Contar usuarios
+            SchemeUser.count((err, conteo) => {
+                res.json({
+                    ok: true,
+                    users,
+                    cuantos: conteo
+                });
+            });
+        })
+});
+
 module.exports = app;
