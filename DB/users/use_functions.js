@@ -75,5 +75,29 @@ app.put('/usuario/:id', function(req, res) {
 });
 
 // Borrar usuarios
+app.delete('/usuario/:id', function(req, res) {
+    let id = req.params.id;
+
+    userScheme.findOneAndRemove(id, (err, userDeleted) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        };
+        if (!userDeleted) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no encontrado'
+                }
+            });
+        }
+        res.json({
+            ok: true,
+            usuario: userDeleted
+        });
+    });
+});
 
 module.exports = app;
