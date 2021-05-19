@@ -6,98 +6,98 @@ const _ = require('underscore');
 
 // Guardar usuario
 app.post('/usuario', (req, res) => {
-    let body = req.body;
-    let usuarios = new userScheme({
-        usuario: body.usuario,
-        contraseña: bcrypt.hashSync(body.contraseña, 10)
-    });
-    usuarios.save((err, userDB) => {
-        if (err) {
-            return res.status(400).json({
-                ok: false,
-                err
-            });
-        }
+    try {
+        let body = req.body;
+        let usuarios = new userScheme({
+            usuario: body.usuario,
+            contraseña: bcrypt.hashSync(body.contraseña, 10)
+        });
+        usuarios.save();
         res.json({
             ok: true,
-            usuario: userDB
+            message: 'Usuario creado con éxito'
         });
-    });
+    } catch (error) {
+        res.json({
+            ok: false,
+            message: 'Error al crear usuario'
+        })
+    }
 });
 
 // Listar usuarios
-app.get('/usuario', function(req, res) {
+app.get('/usuario', (req, res) => {
     let desde = req.query.desde || 0;
     desde = Number(desde);
 
     let limite = req.query.limite || 5;
     limite = Number(limite);
 
-    userScheme.find()
-        .skip(desde)
-        .limit(limite)
-        .exec((err, users) => {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    err
+    try {
+        userScheme.find()
+            .skip(desde)
+            .limit(limite)
+            .exec((err, users) => {
+                // Contar usuarios
+                userScheme.count((err, conteo) => {
+                    res.json({
+                        ok: true,
+                        users,
+                        cuantos: conteo
+                    });
                 });
-            }
-
-            // Contar usuarios
-            userScheme.count((err, conteo) => {
-                res.json({
-                    ok: true,
-                    users,
-                    cuantos: conteo
-                });
-            });
+            })
+    } catch (error) {
+        res.json({
+            ok: false,
+            message: 'Error al listar los usuarios'
         })
+    }
 });
 
 // Editar usuarios
-app.put('/usuario/:id', function(req, res) {
+app.put('/usuario/:id', (req, res) => {
     let id = req.params.id;
-    let body = _.pick(req.body, ['usuario', 'contraseña', 'role']);
-
-    userScheme.findByIdAndUpdate(id, body, { new: true, runValidators: true }, (err, userDB) => {
-        if (err) {
-            return res.status(400).json({
-                ok: false,
-                err
-            });
-        }
+    //let body = _.pick(req.body, ['usuario', 'contraseña', 'role']);
+    try {
+        //userScheme.findByIdAndUpdate(id, req.body, { new: true, runValidators: true }, () => {
+        userScheme.findByIdAndUpdate(id, req.body, { new: true, runValidators: false }, () => {
+            try {
+                res.json({
+                    ok: true,
+                    message: 'Usuario actualizado.'
+                });
+            } catch (err) {
+                res.json({
+                    message: 'Usuario existente'
+                })
+            }
+        })
+    } catch (error) {
         res.json({
-            ok: true,
-            usuario: userDB
-        });
-    })
+            ok: false,
+            message: 'Error al actualizar el usuario.'
+        })
+    }
 });
 
 // Borrar usuarios
-app.delete('/usuario/:id', function(req, res) {
+app.delete('/usuario/:id', async(req, res) => {
     let id = req.params.id;
 
-    userScheme.findOneAndRemove(id, (err, userDeleted) => {
-        if (err) {
-            return res.status(400).json({
-                ok: false,
-                err
+    try {
+        await userScheme.findByIdAndDelete(id, () => {
+            res.json({
+                ok: true,
+                message: 'Usuario eliminado.'
             });
-        };
-        if (!userDeleted) {
-            return res.status(400).json({
-                ok: false,
-                err: {
-                    message: 'Usuario no encontrado'
-                }
-            });
-        }
-        res.json({
-            ok: true,
-            usuario: userDeleted
         });
-    });
+    } catch (error) {
+        res.json({
+            ok: false,
+            message: 'Error al eliminar el usuario.'
+        })
+    }
 });
 
 module.exports = app;
